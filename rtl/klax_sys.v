@@ -4,7 +4,7 @@
 //============================================================================
 // Klax System Wrapper
 //
-// Encapsulates the 68000 CPU (TG68K), its bus glue (klax_cpu_bus: address
+// Encapsulates the 68000 CPU (fx68k), its bus glue (klax_cpu_bus: address
 // decode, DTACK timing, read-data mux), and its entire memory map:
 //   - Program ROM
 //   - Work RAM
@@ -113,7 +113,7 @@ module klax_sys #(
 );
 
     // === CPU Signals ===
-    wire [31:0] cpu_addr;
+    wire [23:0] cpu_addr;
     wire [15:0] cpu_data_out;
     wire [15:0] cpu_data_in;
     wire [2:0]  cpu_fc;
@@ -170,35 +170,10 @@ module klax_sys #(
         .wdog_reset (wdog_reset)
     );
 
-    // TG68K uses both edges of its CPU clock. ce_cpu marks the rising edge of
-    // the native 68000 clock; ce_cpu_fall is asserted five clk_sys later.
-    // Because the rise enable is consumed on a posedge and the fall enable on
-    // the following negedge, the recreated falling edge lands 4.5 clk_sys after
-    // the rising edge and 3.5 before the next at the native /8 cadence. The
-    // wrapper bus FSM needs strict rise-then-fall alternation: a tied-high
-    // ce_cpu keeps both edges enabled every cycle (full-rate operation), and
-    // the /8 build places exactly one fall between rises. A shorter divided
-    // period (below ~6 clk_sys) drops or mis-phases the fall pulse and stalls
-    // the FSM, so do not reuse this generator at a faster CE cadence.
-    reg [2:0] cpu_ce_phase = 3'd0;
-    reg       ce_cpu_d = 1'b0;
-    reg       ce_cpu_fall = 1'b0;
-
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
-            cpu_ce_phase <= 3'd0;
-            ce_cpu_d <= 1'b0;
-            ce_cpu_fall <= 1'b0;
-        end else begin
-            ce_cpu_d <= ce_cpu;
-            if (ce_cpu)
-                cpu_ce_phase <= 3'd0;
-            else
-                cpu_ce_phase <= cpu_ce_phase + 3'd1;
-
-            ce_cpu_fall <= (ce_cpu && ce_cpu_d) || (cpu_ce_phase == 3'd3);
-        end
-    end
+    // 68000 interrupt acknowledge: CPU-space cycle (FC=7) with AS asserted.
+    // VPA = NAND(BAS,FC2,FC1,FC0) on the board (F20 @9B), so the CPU
+    // autovectors; klax_cpu_bus suppresses DTACK for these cycles.
+    wire cpu_iack_cycle = ~cpu_as_n && (cpu_fc == 3'b111);
 
     // Sticky per-subsystem activity flags for the dbg_vram_flags observation
     // port (see the header note on the dbg_* outputs).
@@ -410,10 +385,9 @@ module klax_sys #(
         .ipl_n      (cpu_ipl_n)
     );
 
-    // === TG68K CPU ===
-    // The board 68000 runs at the native pixel clock. Keep TG68K in the
-    // clk_sys domain, but advance its rising/falling CPU-clock phases at
-    // the original /8 cadence.
+    // === 68000 CPU (fx68k, cycle-exact) ===
+    // The board 68000 runs at the native pixel clock: ce_cpu marks each
+    // CPU clock rising edge, and klax_cpu68k derives the falling-edge enable.
 
     assign dbg_cpu_addr      = cpu_addr[23:0];
     assign dbg_cpu_data_in   = cpu_data_in;
@@ -425,15 +399,11 @@ module klax_sys #(
     assign dbg_cpu_rw_n      = cpu_rw_n;
     assign dbg_cpu_dtack_n   = cpu_dtack_n;
     // This tap reports the external reset only. The watchdog still resets the
-    // real CPU (TG68K/bus/irq via sys_reset); keeping the exported signal
+    // real CPU (CPU/bus/irq via sys_reset); keeping the exported signal
     // external-only lets monotonic "seen" latches in a simulation survive a
     // watchdog bite from a CPU model that does not pet every frame.
     assign dbg_cpu_reset     = reset;
     assign dbg_cpu_ipl_n     = cpu_ipl_n;
-
-    // TG68K models 68000 autovectors through VPA during CPU-space interrupt
-    // acknowledge cycles. Normal memory cycles use the asynchronous DTACK path.
-    wire cpu_iack_cycle = ~cpu_as_n && (cpu_fc == 3'b111);
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
@@ -494,28 +464,21 @@ module klax_sys #(
         end
     end
 
-    TG68K #(
-        .CPU(2'b00)  // 68000 (must be 2-bit vector for VHDL std_logic_vector)
-    ) u_cpu (
-        .CLK     (clk),
-        .CLKEN   (ce_cpu),
-        .CLKEN_FALL(ce_cpu_fall),
-        .RESET   (~sys_reset),  // TG68K reset is active low (incl. watchdog)
-        .HALT    (~sys_reset),  // Tie HALT to reset
-        .BERR    (1'b0),        // No bus error
-        .IPL     (cpu_ipl_n),   // Interrupt priority level (active low)
-        .ADDR    (cpu_addr),
-        .FC      (cpu_fc),
-        .DATAI   (cpu_data_in),
-        .DATAO   (cpu_data_out),
-        .AS      (cpu_as_n),
-        .UDS     (cpu_uds_n),
-        .LDS     (cpu_lds_n),
-        .RW      (cpu_rw_n),
-        .DTACK   (cpu_dtack_n),
-        .E       (),
-        .VPA     (~cpu_iack_cycle),
-        .VMA     ()
+    klax_cpu68k u_cpu (
+        .clk      (clk),
+        .reset    (sys_reset),     // includes the watchdog bite
+        .ce_cpu   (ce_cpu),
+        .ipl_n    (cpu_ipl_n),
+        .dtack_n  (cpu_dtack_n),
+        .vpa_n    (~cpu_iack_cycle),
+        .data_in  (cpu_data_in),
+        .addr     (cpu_addr),
+        .data_out (cpu_data_out),
+        .fc       (cpu_fc),
+        .as_n     (cpu_as_n),
+        .uds_n    (cpu_uds_n),
+        .lds_n    (cpu_lds_n),
+        .rw_n     (cpu_rw_n)
     );
 
     // === Memory Components ===

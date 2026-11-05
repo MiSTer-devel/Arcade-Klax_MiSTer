@@ -161,6 +161,15 @@ the dumped PALs rather than out of an emulator:
   57.27272 MHz — 4 × the board's master crystal — every clock enable an exact
   integer division, and the 68000 clock enable equal to the pixel clock as on
   the PCB.
+- **Cycle-exact 68000.** The CPU is fx68k, a microcode-derived 68000 with the
+  native bus, driven straight from the board's DTACK logic. Traced against
+  MAME's cycle-exact m68000 over 40 frames of boot and attract on the real
+  program, with the board's wait states subtracted, it takes exactly the same
+  total clocks: 4,434,530 vs 4,434,528 over 374,396 instructions. This matters
+  more than it sounds: the game advances its random-number generator once per
+  pass of the idle loop, so a CPU that runs the loop at the wrong speed plays a
+  different attract demo. With the wait states MAME lacks, the core makes
+  285–293 idle-loop passes per frame, against 297–304 in MAME.
 - **DAC-exact colour.** Sheet 9 is a 6-bit R/2R ladder per channel whose LSB is
   a shared intensity bit, so the output follows the ladder rather than a naive
   bit expansion. The CBANK bit (D13 of the output latch, which is colour RAM
@@ -218,7 +227,8 @@ checked against an independent reference rather than against expectation:
 
 | Subsystem | Method | Result |
 |-----------|--------|--------|
-| Address decode, DTACK, IACK | Dumped GAL equations transcribed and replicated, then exercised by the real TG68K in a mixed-language simulation | Reset-vector fetch through EEPROM service reads and on into the main loop |
+| Address decode, DTACK, IACK | Dumped GAL equations transcribed and replicated, then exercised by the real 68000 core in simulation | Reset-vector fetch through EEPROM service reads and on into the main loop |
+| 68000 instruction timing | Per-instruction clock trace of the real program over 40 frames of boot and attract, compared against MAME 0.288's cycle-exact m68000 with the board's wait states subtracted | 374,396 instructions, total clocks 1.0000 × MAME. 80.9 % match per instruction; the rest are ±2-clock pairs that cancel, from where an instruction ending in a memory write is counted as finished |
 | Playfield renderer | MAME-dumped tilemap and palette RAM rendered through the RTL pipeline, compared against MAME's own frame | Pixel-exact |
 | Motion objects | MAME-dumped MOB, SLIP, tilemap and palette RAM rendered through the full MiSTer top, compared against MAME at 336 × 240 | 98.50 % match at offset 0; residual is dump-vs-render animation skew of moving content |
 | Whole video path | Same comparison, after the DAC-exact colour work | 80,640 px, **0 mismatches, worst channel difference 0** at tolerance 0 |
@@ -229,7 +239,7 @@ checked against an independent reference rather than against expectation:
 | EEPROM persistence | Two-pass save / reload round trip in simulation | Pass |
 | Playfield prefetch | Multi-frame test with a changing tilemap, counting demand misses in the visible window, with prefetch disabled as a control | 0 misses with prefetch; 62,528 miss-cycles per animated frame in the control |
 | CRT Adjust | Line-identity simulation on the Klax raster: a position-encoded source decoded from the output side through the core's own DE, at Off, On at zero, H-Size −4 and +2, and +4 with H-Position −16; upstream's line-late vblank gate run as a control. A second bench checks Off is bit-exact every clock, the read rate per H-Size step, H-Position both ways with HSync fixed, and V-Shift | 240 / 240 lines, source y 0–239, 336 px, no black inside DE at every setting; the control fails |
-| Whole core | Compiled in Quartus 17.0.2 and run on real MiSTer hardware | Validated 2026-07-27 |
+| Whole core | Compiled in Quartus 17.0.2 and run on real MiSTer hardware | Validated 2026-07-27; fx68k build validated 2026-11-05 |
 
 Two lessons from that work are worth passing to anyone extending this core:
 
@@ -290,7 +300,7 @@ Klax.qpf / .qsf / .sdc / .srf   Quartus project
 Klax.sv                         Glue between the MiSTer framework and the core
 files.qip                       Source file list
 rtl/                            The core
-  TG68K/                        68000 CPU core
+  fx68k/                        68000 CPU core
   pll/                          PLL megafunction
 sys/                            MiSTer framework — unmodified
 releases/                       Dated RBF + MRA files
@@ -314,7 +324,7 @@ GPL-2.0-or-later, but it links components that require v3:
 | `rtl/klax_*.v` (this core, except the next row) | GPL-2.0-or-later |
 | `rtl/klax_video_adjust.v` — CRT Adjust glue, written from MiSTer-CRT-Adjust's example | GPL-3.0-or-later |
 | `Klax.sv` — MiSTer framework glue layer | GPL-2.0-or-later |
-| `rtl/TG68K/` — TG68K 68000 core, © Tobias Gubener et al. | LGPL-3.0-or-later |
+| `rtl/fx68k/` — fx68k 68000 core, © Jorge Cwik | GPL-3.0-or-later |
 | `rtl/crt_adjust.sv` — MiSTer-CRT-Adjust `c682de9`, © Umberto Parisi (rmonic79) | GPL-3.0-or-later |
 | `sys/` — MiSTer framework, © Alexey Melnikov and contributors | GPL-2.0-or-later / GPL-3.0-or-later |
 
@@ -325,7 +335,7 @@ GPL-2.0-or-later, but it links components that require v3:
 - **Atari Games** — the original hardware and game. Klax debuted in 1989; the
   ROMs' own internal build stamps read 1990, which is why MAME dates every set
   1990 and the MRAs follow.
-- **Tobias Gubener** and contributors — the TG68K 68000 core.
+- **Jorge Cwik** — the [fx68k](https://github.com/ijor/fx68k) cycle-exact 68000 core.
 - **Umberto Parisi (rmonic79)** — `crt_adjust.sv`, vendored from
   [MiSTer-CRT-Adjust](https://github.com/rmonic79/MiSTer-CRT-Adjust) at `c682de9`.
 - **Alexey Melnikov (Sorgelig)** and the MiSTer-devel community — the MiSTer

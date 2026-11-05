@@ -33,7 +33,7 @@
 // RCLOCK edge — VPA always wins the race and the 68000 autovectors. The
 // decode DOES fire during IACK (the all-ones IACK address mirrors into the
 // /VRAM window), so DTACK is explicitly suppressed here to model that
-// resolved race; klax_sys drives TG68K's VPA.
+// resolved race; klax_sys drives the CPU's VPA.
 //
 // Open bus: unselected reads (and the write-only regions) fall through to
 // 0xFFFF and still complete. MAME differs on both counts (no wait states,
@@ -106,11 +106,6 @@ module klax_cpu_bus (
         .cs_work_ram      (cs_work_ram),
         .cs_vram_window   (cs_vram_window)
     );
-
-    // Defensive guard: a write cycle with neither data strobe is not
-    // acknowledged (TG68K never issues one).
-    wire cpu_lane_active = !cpu_uds_n || !cpu_lds_n;
-    wire cpu_cycle_valid = cpu_rw_n || cpu_lane_active;
 
     //------------------------------------------------------------------------
     // VRAM arbitration replica: 9W GAL (MOBL2) + LS11 PVCPU
@@ -217,13 +212,15 @@ module klax_cpu_bus (
     // LS163A @10B wait-state counter (RCLOCK cadence).
     // Sync-cleared while AS is idle; loads {1, PVCPU|/VRAM, /PCM, /EEPROM}
     // while QD=0; counts to 15 and holds; DTACK = (count == 15).
+    // Keyed on AS (BAS) only, as on the board: a 68000 write asserts
+    // UDS/LDS one CPU clock after AS, and the counter must not wait for them.
     //------------------------------------------------------------------------
     reg [3:0] wcnt;
     always @(posedge clk or posedge reset) begin
         if (reset)
             wcnt <= 4'd0;
         else if (ce_cpu) begin
-            if (cpu_as_n || cpu_iack || !cpu_cycle_valid)
+            if (cpu_as_n || cpu_iack)
                 wcnt <= 4'd0;
             else if (!wcnt[3])
                 wcnt <= {1'b1,

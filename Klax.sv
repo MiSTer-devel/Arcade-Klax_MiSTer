@@ -7,7 +7,7 @@
 //  Atari Games. Debuted 1989; MAME dates every set 1990 from the ROMs' own
 //  internal build stamps (parent set: 13FEB1990 11:10:09), and the MRAs follow.
 //
-//  Full-game MiSTer integration: TG68K 68000 core, playfield + motion-object
+//  Full-game MiSTer integration: fx68k 68000 core, playfield + motion-object
 //  rendering, OKI MSM6295 audio, and EEPROM NVRAM save, with the graphics ROM
 //  served from DDRAM.
 //

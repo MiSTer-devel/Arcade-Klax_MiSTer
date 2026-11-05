@@ -43,11 +43,13 @@ set_global_assignment -name VERILOG_FILE rtl/klax_sprow_adapter.v
 # --- System wrapper: 68000 + full memory map ------------------------------
 set_global_assignment -name VERILOG_FILE rtl/klax_sys.v
 
-# --- TG68K 68000 CPU core (LGPL-3.0-or-later, Tobias Gubener et al.) ------
-set_global_assignment -name VHDL_FILE rtl/TG68K/TG68K.vhd
-set_global_assignment -name VHDL_FILE rtl/TG68K/TG68K_ALU.vhd
-set_global_assignment -name VHDL_FILE rtl/TG68K/TG68K_Pack.vhd
-set_global_assignment -name VHDL_FILE rtl/TG68K/TG68KdotC_Kernel.vhd
+# --- fx68k cycle-exact 68000 CPU core (GPL-3.0-or-later, Jorge Cwik) -----
+# SEARCH_PATH lets Quartus find the micro/nanocode .mem files it $readmemb's.
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/fx68k/fx68k.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/fx68k/fx68kAlu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/fx68k/uaddrPla.sv
+set_global_assignment -name SEARCH_PATH rtl/fx68k
+set_global_assignment -name VERILOG_FILE rtl/klax_cpu68k.v
 
 # --- CRT Adjust (MiSTer-CRT-Adjust c682de9, GPL-3.0-or-later, rmonic79) ----
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/crt_adjust.sv
