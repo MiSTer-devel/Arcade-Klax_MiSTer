@@ -5,6 +5,7 @@
     <manufacturer>Atari Games</manufacturer>
     <setname>klax5</setname>
     <rbf>Klax</rbf>
+    <rotation>horizontal</rotation>
 
     <about>
         Klax for MiSTer — Atari Games. Set `klax5` (version 5), whose

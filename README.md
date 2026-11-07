@@ -52,7 +52,7 @@ Atari JSA II sound board with a completely different video path.
 
 ## Installing
 
-1. Copy `releases/Klax_<date>.rbf` to `/media/fat/_Arcade/cores/`.
+1. Copy `releases/Arcade-Klax_<date>.rbf` to `/media/fat/_Arcade/cores/`.
 2. Copy `releases/Klax.mra` to `/media/fat/_Arcade/`, and any alternates you
    want from `releases/_alternatives/`.
 3. Put the MAME ROM set (`klax.zip`, matching the CRCs in the MRA) in
@@ -267,7 +267,7 @@ One build note worth knowing before you change fitter settings: the worst setup
 path in this design is not in the core at all, it is in the framework's HDMI
 pipeline (ascal's polyphase luma, and shadowmask feeding the HDMI OSD counters),
 constrained at the 148.5 MHz 1080p60 pixel clock. It is tight enough that
-placement decides whether it closes, which is why `Klax.qsf` pins a specific
+placement decides whether it closes, which is why `Arcade-Klax.qsf` pins a specific
 fitter seed. Re-check timing if you change it.
 
 ---
@@ -276,9 +276,9 @@ fitter seed. Re-check timing if you change it.
 
 Quartus Prime **17.0.2** (Lite or Standard), as required for MiSTer cores.
 
-1. Open `Klax.qpf`.
-2. Compile. The output is `output_files/Klax.rbf`.
-3. For a release, copy it to `releases/Klax_YYYYMMDD.rbf`.
+1. Open `Arcade-Klax.qpf`.
+2. Compile. The output is `output_files/Arcade-Klax.rbf`.
+3. For a release, copy it to `releases/Arcade-Klax_YYYYMMDD.rbf`.
 
 Sources are listed in `files.qip` — add files there by hand, not through the
 Quartus IDE, which writes them into the `.qsf` instead and lets the two lists
@@ -296,8 +296,8 @@ needs block RAM this design no longer has spare, so leave it at 1.
 ## Repository layout
 
 ```text
-Klax.qpf / .qsf / .sdc / .srf   Quartus project
-Klax.sv                         Glue between the MiSTer framework and the core
+Arcade-Klax.qpf/.qsf/.sdc/.srf Quartus project
+Arcade-Klax.sv                  Glue between the MiSTer framework and the core
 files.qip                       Source file list
 rtl/                            The core
   fx68k/                        68000 CPU core
@@ -309,7 +309,7 @@ releases/                       Dated RBF + MRA files
 `sys/` is a verbatim copy of [Template_MiSTer](https://github.com/MiSTer-devel/Template_MiSTer)
 at commit `b4726d2` (2026-08-04), byte-identical, with no core-specific edits. The
 `emu` port list comes from the framework's own `sys/emu_ports.vh` rather than
-being copied into `Klax.sv`, so a framework update cannot leave the two
+being copied into `Arcade-Klax.sv`, so a framework update cannot leave the two
 out of step.
 
 ---
@@ -323,7 +323,7 @@ GPL-2.0-or-later, but it links components that require v3:
 |-----------|---------|
 | `rtl/klax_*.v` (this core, except the next row) | GPL-2.0-or-later |
 | `rtl/klax_video_adjust.v` — CRT Adjust glue, written from MiSTer-CRT-Adjust's example | GPL-3.0-or-later |
-| `Klax.sv` — MiSTer framework glue layer | GPL-2.0-or-later |
+| `Arcade-Klax.sv` — MiSTer framework glue layer | GPL-2.0-or-later |
 | `rtl/fx68k/` — fx68k 68000 core, © Jorge Cwik | GPL-3.0-or-later |
 | `rtl/crt_adjust.sv` — MiSTer-CRT-Adjust `c682de9`, © Umberto Parisi (rmonic79) | GPL-3.0-or-later |
 | `sys/` — MiSTer framework, © Alexey Melnikov and contributors | GPL-2.0-or-later / GPL-3.0-or-later |

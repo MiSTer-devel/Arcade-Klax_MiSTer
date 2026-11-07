@@ -5,6 +5,7 @@
     <manufacturer>Atari Games</manufacturer>
     <setname>klaxd2</setname>
     <rbf>Klax</rbf>
+    <rotation>horizontal</rotation>
 
     <about>
         Klax for MiSTer — Atari Games. Set `klaxd2` (Germany, version 2), whose

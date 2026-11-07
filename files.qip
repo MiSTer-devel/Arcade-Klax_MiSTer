@@ -3,7 +3,7 @@
 #
 # This file is the single source of truth for the core's sources. Add files
 # here manually; do NOT add them through the Quartus IDE, which writes them
-# into Klax.qsf instead and lets the two lists drift apart.
+# into Arcade-Klax.qsf instead and lets the two lists drift apart.
 #
 # The MiSTer framework (sys/) and the PLL (rtl/pll.qip) are pulled in by
 # sys/sys.tcl and sys/sys.qip, so they are deliberately absent here.
@@ -59,5 +59,5 @@ set_global_assignment -name VERILOG_FILE rtl/klax_video_adjust.v
 set_global_assignment -name VERILOG_FILE rtl/klax_top_mister.v
 
 # --- Constraints and the framework glue layer ------------------------------
-set_global_assignment -name SDC_FILE Klax.sdc
-set_global_assignment -name SYSTEMVERILOG_FILE Klax.sv
+set_global_assignment -name SDC_FILE Arcade-Klax.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-Klax.sv
